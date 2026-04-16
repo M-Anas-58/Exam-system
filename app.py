@@ -479,5 +479,5 @@ def reset():
     return jsonify({"message": "System reset successfully"})
 
 if __name__ == "__main__":
-    print("\n  Open http://127.0.0.1:5000\n")
-    app.run(debug=False, threaded=True, host="0.0.0.0", port=5000, use_reloader=False)
+    print("\n  Open http://127.0.0.1:1000\n")
+    app.run(debug=False, threaded=True, host="0.0.0.0", port=1000, use_reloader=False)
