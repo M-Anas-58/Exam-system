@@ -22,16 +22,11 @@ if os.path.exists(MODEL_PATH):
 else:
     print("[YOLO] WARNING: best.pt not found — YOLO detection disabled")
 
-# Class names
 CLASS_USING_PHONE    = "Using Phone"
 CLASS_LEANING        = "Leaning to Copy"
 CLASS_SHARING        = "Sharing Answers"
 
-WATCHED_CLASSES = {
-    CLASS_USING_PHONE,
-    CLASS_LEANING,
-    CLASS_SHARING
-}
+WATCHED_CLASSES = { CLASS_USING_PHONE, CLASS_LEANING, CLASS_SHARING }
 
 CLASS_COLOUR = {
     CLASS_USING_PHONE:    (0,   0, 255),
@@ -39,16 +34,12 @@ CLASS_COLOUR = {
     CLASS_SHARING:        (180,  0, 220),
 }
 
-PRIORITY = [
-    CLASS_USING_PHONE,
-    CLASS_LEANING,
-    CLASS_SHARING,
-]
+PRIORITY = [ CLASS_USING_PHONE, CLASS_LEANING, CLASS_SHARING ]
 
 EVIDENCE_CLASSES = WATCHED_CLASSES
-CONF_THRESHOLD   = 0.50
+CONF_THRESHOLD   = 0.40
 
-# State
+# Global variables to keep track of the exam state and alerts
 students        = {}
 evidence_log    = []
 alert_queue     = []
@@ -63,10 +54,13 @@ live_ai_score   = 0.0
 last_alert_text = ""
 last_alert_conf = 0
 
+last_evidence_ts  = 0.0
+last_detection_ts = 0.0
+
 EVIDENCE_DIR = os.path.join(os.path.dirname(__file__), "web", "evidence")
 os.makedirs(EVIDENCE_DIR, exist_ok=True)
 
-# Evidence saver
+# Function to save a screenshot when cheating is detected
 def save_evidence(crop, class_name, conf):
     ts    = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
     fname = f"ev_{ts}.jpg"
@@ -86,7 +80,6 @@ def save_evidence(crop, class_name, conf):
         "ts":   entry["timestamp"]
     })
 
-#  System Event Logger
 def add_system_event(msg, event_type="info"):
     alert_queue.append({
         "type": event_type,
@@ -96,9 +89,10 @@ def add_system_event(msg, event_type="info"):
 
 fc = 0
 
-# Main analysis
+# Core AI function
 def analyze(frame):
     global fc, live_ai_score, last_alert_text, last_alert_conf
+    global last_evidence_ts, last_detection_ts
 
     fc  += 1
     out  = frame.copy()
@@ -125,11 +119,9 @@ def analyze(frame):
                     if (class_name not in detections or conf > detections[class_name][0]):
                         detections[class_name] = (conf, pts, col)
 
-            # Draw all OBB boxes
             for class_name, (conf, pts, col) in detections.items():
                 cv2.polylines(out, [pts], isClosed=True, color=col, thickness=2)
 
-            # Pick highest priority
             triggered_class = None
             triggered_conf  = 0.0
 
@@ -139,15 +131,16 @@ def analyze(frame):
                     triggered_conf, _, _ = detections[cls]
                     break
 
-            # Fire alert
             if triggered_class:
+                current_time = time.time()
+                last_detection_ts = current_time 
+                
                 conf_pct        = round(triggered_conf * 100)
                 live_ai_score   = float(conf_pct)
                 last_alert_text = triggered_class.upper()
                 last_alert_conf = conf_pct
 
-                # Evidence
-                if fc % 90 == 0:
+                if current_time - last_evidence_ts > 5.0:
                     _, pts, col = detections[triggered_class]
                     rx1  = max(0, int(pts[:, 0].min()) - 20)
                     ry1  = max(0, int(pts[:, 1].min()) - 20)
@@ -158,9 +151,10 @@ def analyze(frame):
                         cv2.rectangle(crop, (0, 0), (crop.shape[1]-1, crop.shape[0]-1), col, 3)
                         cv2.putText(crop, triggered_class.upper(), (6, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.6, col, 2)
                         save_evidence(crop, triggered_class, triggered_conf)
+                        last_evidence_ts = current_time 
             else:
                 live_ai_score = max(0.0, live_ai_score - 1.5)
-                if fc % 50 == 0:
+                if time.time() - last_detection_ts > 2.0:
                     last_alert_text = ""
                     last_alert_conf = 0
 
@@ -172,7 +166,6 @@ def analyze(frame):
         last_alert_text = ""
         last_alert_conf = 0
 
-    # Alert banner
     if last_alert_text and exam_running:
         col     = CLASS_COLOUR.get(last_alert_text.title(), (0, 0, 255))
         bar_h   = 62
@@ -183,7 +176,6 @@ def analyze(frame):
         cv2.putText(out, last_alert_text, (82, out.shape[0] - bar_h + 22), cv2.FONT_HERSHEY_SIMPLEX, 0.62, col, 2)
         cv2.putText(out, f"Confidence: {last_alert_conf}%", (12, out.shape[0] - bar_h + 48), cv2.FONT_HERSHEY_SIMPLEX, 0.52, (200, 200, 200), 1)
 
-    # HUD
     ts = datetime.now().strftime("%Y-%m-%d  %H:%M:%S")
     cv2.rectangle(out, (0, 0), (out.shape[1], 30), (0, 0, 0), -1)
     cv2.putText(out, f"ExamGuard AI  |  {ts}", (8, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 220, 160), 1)
@@ -192,6 +184,7 @@ def analyze(frame):
     cv2.putText(out, status, (out.shape[1] - 145, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, col2, 2)
     return out
 
+# Camera handling: Connections and background thread
 def make_blank_frame(msg="", submsg=""):
     blank = np.zeros((480, 640, 3), dtype=np.uint8)
     if msg: cv2.putText(blank, msg, (30, 225), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (80, 80, 80), 2)
@@ -199,7 +192,6 @@ def make_blank_frame(msg="", submsg=""):
     _, buf = cv2.imencode(".jpg", blank)
     return buf.tobytes()
 
-#  Camera
 def open_camera(source):
     print(f"[CAM] Connecting to: {source}")
     if isinstance(source, str) and (source.startswith("http") or source.startswith("rtsp")):
@@ -225,7 +217,6 @@ def open_camera(source):
     print(f"[CAM] Connected: {source}")
     return c
 
-# Camera thread
 cap          = None
 cam_running  = True
 switch_event = threading.Event()
@@ -297,7 +288,6 @@ def cam_watchdog():
 
 threading.Thread(target=cam_watchdog, daemon=True).start()
 
-#  Frame generator
 def gen_frames():
     last_sent = None
     while True:
@@ -311,7 +301,7 @@ def gen_frames():
                 yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + blank + b"\r\n")
         time.sleep(0.04)
 
-# Routes
+# Web API Routes for the frontend dashboard
 @app.route("/")
 def index():
     return render_template("dashboard.html")
@@ -479,5 +469,5 @@ def reset():
     return jsonify({"message": "System reset successfully"})
 
 if __name__ == "__main__":
-    print("\n  Open http://127.0.0.1:1000\n")
-    app.run(debug=False, threaded=True, host="0.0.0.0", port=1000, use_reloader=False)
+    print("\n  Open http://127.0.0.1:5000\n")
+    app.run(debug=False, threaded=True, host="0.0.0.0", port=5000, use_reloader=False)
