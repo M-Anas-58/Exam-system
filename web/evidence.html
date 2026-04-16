@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ExamGuard AI – Evidence</title>
+<link rel="stylesheet" href="/web/style.css"/>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="nav-logo">
+    <span class="nav-logo-icon">🎓</span>
+    <div>
+      <div class="nav-logo-title">ExamGuard AI</div>
+      <div class="nav-logo-sub">Surveillance System</div>
+    </div>
+  </div>
+  <div class="nav-links">
+    <a href="/" class="nav-link">📊 Dashboard</a>
+    <a href="/evidence_page" class="nav-link active">🗂 Evidence</a>
+  </div>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+    <span class="badge badge-info" id="evCount">0 records</span>
+    <button class="btn btn-outline btn-sm" onclick="loadEvidence()">⟳ Refresh</button>
+  </div>
+</div>
+
+<main class="main">
+
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+    <div>
+      <div class="page-title">Evidence Logs</div>
+      <div class="page-sub">Auto-captured screenshots of detected cheating activity</div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <select id="filterType" class="cam-input" onchange="applyFilters()" style="width:160px">
+        <option value="">All types</option>
+        <option value="Using Phone">Using Phone</option>
+        <option value="Leaning to Copy">Leaning to Copy</option>
+        <option value="Sharing Answers">Sharing Answers</option>
+      </select>
+      <input id="filterInput" class="cam-input" placeholder="Search alerts…" oninput="applyFilters()" style="width:180px"/>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px;flex-wrap:wrap; margin-top: 10px;">
+    <div class="stat-card" style="flex:1;min-width:130px;padding:10px 14px">
+      <div class="stat-icon orange" style="width:32px;height:32px;font-size:15px">⚠️</div>
+      <div>
+        <div class="stat-val" id="totalEv" style="font-size:20px">0</div>
+        <div class="stat-label">Total Alerts</div>
+      </div>
+    </div>
+    <div class="stat-card" style="flex:1;min-width:130px;padding:10px 14px">
+      <div class="stat-icon red" style="width:32px;height:32px;font-size:15px">📱</div>
+      <div>
+        <div class="stat-val" id="phoneEv" style="font-size:20px">0</div>
+        <div class="stat-label">Phone Detections</div>
+      </div>
+    </div>
+    <div class="stat-card" style="flex:1;min-width:130px;padding:10px 14px">
+      <div class="stat-icon blue" style="width:32px;height:32px;font-size:15px">🤝</div>
+      <div>
+        <div class="stat-val" id="shareEv" style="font-size:20px">0</div>
+        <div class="stat-label">Sharing / Leaning</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="flex:1; margin-top: 15px;">
+    <div class="card-header">
+      <span>📸 Captured Evidence</span>
+      <span id="filteredCount" style="font-size:11px;color:var(--muted)"></span>
+    </div>
+    <div id="evidenceGrid" class="evidence-grid">
+      <div class="ev-empty">Loading evidence…</div>
+    </div>
+  </div>
+
+</main>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span id="modalTitle">Evidence Detail</span>
+      <button class="btn btn-sm btn-outline" onclick="closeModal()">✕ Close</button>
+    </div>
+    <img id="modalImg" class="modal-img" src="" alt="Evidence" style="display:none"/>
+    <div class="ev-no-img" id="modalNoImg" style="display:none;height:200px">📷</div>
+    <div id="modalMeta" class="modal-meta"></div>
+  </div>
+</div>
+
+<script src="/web/evidence.js"></script>
+</body>
+</html>

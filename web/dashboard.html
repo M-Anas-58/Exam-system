@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ExamGuard AI – Dashboard</title>
+<link rel="stylesheet" href="/web/style.css"/>
+</head>
+<body>
+<main class="main">
+
+  <div class="topbar">
+    <div class="nav-logo">
+      <span class="nav-logo-icon">🎓</span>
+      <div>
+        <div class="nav-logo-title">ExamGuard AI</div>
+        <div class="nav-logo-sub">Surveillance System</div>
+      </div>
+    </div>
+    <div class="nav-links">
+      <a href="/" class="nav-link active">📊 Dashboard</a>
+      <a href="/evidence_page" class="nav-link">🗂 Evidence</a>
+    </div>
+    <div class="topbar-actions">
+      <div style="position:relative; display:flex; align-items:center;">
+        <input id="camInput" class="cam-input" placeholder="Camera IP or index…"/>
+        <button id="setCamBtn" class="btn btn-outline btn-sm" onclick="toggleCameraInput()" style="margin-right:12px; z-index:2; position:relative;">⚙ Set Camera</button>
+      </div>
+      <button id="examBtn" class="btn btn-success" onclick="handleStartBtn()">▶ Start Session</button>
+    </div>
+  </div>
+
+  <div class="content-grid">
+
+    <div class="stats-grid">
+      <div class="stat-card" id="alertCard">
+        <div class="stat-icon orange">⚠️</div>
+        <div>
+          <div class="stat-label" style="font-size:13px;font-weight:600;color:var(--text)">Cheat Alert</div>
+          <div class="stat-sub" id="alertStatus">Monitoring</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon purple">🤖</div>
+        <div>
+          <div class="stat-val" id="statAIScore">--</div>
+          <div class="stat-label">AI Suspicion Score</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon blue">🕐</div>
+        <div>
+          <div class="stat-val" id="statClock" style="font-size:20px;letter-spacing:1px">--:--:--</div>
+          <div class="stat-label">Live Time</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="video-col">
+      <div class="card" style="display:flex; flex-direction:column; height: 100%;">
+        <div class="card-header">
+          <span>📹 Live Camera Feed</span>
+          <span id="examBadge" class="badge badge-standby">STANDBY</span>
+        </div>
+        
+        <div class="video-wrap">
+          <img id="videoFeed" src="/video_feed" alt="Live Feed"/>
+        </div>
+        
+        <div class="alert-ticker" id="alertTicker" style="border-radius: 0;">
+          Upload student file and press Start Session.
+        </div>
+        <div class="download-row hidden" id="downloadRow">
+          <span style="font-size:12px;color:var(--muted);align-self:center;">Download Logs:</span>
+          <button class="btn btn-blue btn-sm" onclick="downloadAttendance()">⬇ Attendance</button>
+          <button class="btn btn-blue btn-sm" onclick="downloadEventLog()">⬇ Event Log</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-panel">
+
+      <div class="card attendance-card">
+        <div class="card-header">
+          <span>✅ Attendance List</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span style="font-size: 10px; color: var(--muted);">Auto-saving</span>
+            <span class="badge badge-info" id="presentBadge">0 / 0</span>
+          </div>
+        </div>
+        <div id="rosterList" class="roster-list">
+          <div style="padding:16px;text-align:center;color:var(--muted);font-size:12px">
+            Upload student file to begin…
+          </div>
+        </div>
+      </div>
+
+      <div class="card event-log-card">
+        <div class="card-header">
+          <span>🔔 Event Log</span>
+          <span id="logStatus" class="badge badge-standby">Waiting</span>
+        </div>
+        <div id="eventLog" class="event-log"></div>
+      </div>
+
+    </div>
+
+  </div>
+</main>
+
+<div class="modal-overlay" id="uploadModal">
+  <div class="modal-box" style="max-width:500px">
+    <div class="modal-header">
+      <span>📂 Upload Student File</span>
+    </div>
+    <div style="padding:24px;display:flex;flex-direction:column;gap:16px">
+      <div style="font-size:13px;color:var(--muted);line-height:1.7">
+        Upload an <strong style="color:var(--text)">.xlsx</strong> file with columns:
+        <div style="margin-top:8px;background:#21262d;border-radius:6px;padding:10px 14px;font-family:monospace;font-size:12px;color:var(--accent)">
+          roll &nbsp;|&nbsp; name
+        </div>
+      </div>
+      <div id="dropZone" class="drop-zone" onclick="document.getElementById('fileInput').click()" ondragover="event.preventDefault(); this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event)">
+        <div class="drop-icon">📄</div>
+        <div class="drop-text">Click or drag &amp; drop Excel file</div>
+        <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none" onchange="handleFileSelect(event)"/>
+      </div>
+      <div id="filePreview" style="display:none;background:#21262d;border-radius:6px;padding:10px 14px;font-size:12px;align-items:center;gap:10px">
+        <span style="font-size:20px">📊</span>
+        <div><div id="fileName" style="font-weight:600;color:var(--text)"></div><div id="fileSize" style="color:var(--muted);margin-top:2px"></div></div>
+      </div>
+      <div id="uploadError" style="display:none;color:var(--red);font-size:12px;padding:8px 12px;background:#2d0d0d;border-radius:6px;border-left:3px solid var(--red)"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn btn-outline" onclick="closeUploadModal()">Cancel</button>
+        <button class="btn btn-success" id="uploadBtn" onclick="uploadFile()" disabled>✔ Upload &amp; Continue</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/web/script.js"></script>
+</body>
+</html>

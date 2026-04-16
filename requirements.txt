@@ -1,0 +1,7 @@
+flask
+opencv-python
+numpy
+openpyxl
+Pillow
+werkzeug
+ultralytics
