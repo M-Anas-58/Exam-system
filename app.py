@@ -1,3 +1,4 @@
+# Setup Flask app, import libraries, and create upload folder
 import os, cv2, time, threading, io
 from flask import (Flask, render_template, Response,
                    jsonify, request, send_file, send_from_directory)
@@ -13,7 +14,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 from database import load_students_from_file
 
-# Load YOLO model
+# Load YOLO model and define the specific cheating behaviors to detect
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "best.pt")
 yolo_model = None
 if os.path.exists(MODEL_PATH):
@@ -36,8 +37,9 @@ CLASS_COLOUR = {
 
 PRIORITY = [ CLASS_USING_PHONE, CLASS_LEANING, CLASS_SHARING ]
 
-EVIDENCE_CLASSES = WATCHED_CLASSES
-CONF_THRESHOLD   = 0.40
+EVIDENCE_CLASSES     = WATCHED_CLASSES
+CONF_THRESHOLD       = 0.55
+CONSECUTIVE_REQUIRED = 3
 
 # Global variables to keep track of the exam state and alerts
 students        = {}
@@ -54,17 +56,19 @@ live_ai_score   = 0.0
 last_alert_text = ""
 last_alert_conf = 0
 
-last_evidence_ts  = 0.0
-last_detection_ts = 0.0
+last_evidence_ts     = 0.0
+last_detection_ts    = 0.0
+alert_cooldown_until = 0.0
+consecutive_hits     = 0
 
 EVIDENCE_DIR = os.path.join(os.path.dirname(__file__), "web", "evidence")
 os.makedirs(EVIDENCE_DIR, exist_ok=True)
 
 # Function to save a screenshot when cheating is detected
-def save_evidence(crop, class_name, conf):
+def save_evidence(image, class_name, conf):
     ts    = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
     fname = f"ev_{ts}.jpg"
-    cv2.imwrite(os.path.join(EVIDENCE_DIR, fname), crop)
+    cv2.imwrite(os.path.join(EVIDENCE_DIR, fname), image)
     score_pct = round(conf * 100)
     entry = {
         "id":         len(evidence_log) + 1,
@@ -89,10 +93,10 @@ def add_system_event(msg, event_type="info"):
 
 fc = 0
 
-# Core AI function
+# Core AI function: Analyzes video frames, draws boxes, and triggers alerts
 def analyze(frame):
     global fc, live_ai_score, last_alert_text, last_alert_conf
-    global last_evidence_ts, last_detection_ts
+    global last_evidence_ts, last_detection_ts, alert_cooldown_until, consecutive_hits
 
     fc  += 1
     out  = frame.copy()
@@ -119,40 +123,36 @@ def analyze(frame):
                     if (class_name not in detections or conf > detections[class_name][0]):
                         detections[class_name] = (conf, pts, col)
 
+            # Draw the colored boxes on the full image
             for class_name, (conf, pts, col) in detections.items():
                 cv2.polylines(out, [pts], isClosed=True, color=col, thickness=2)
 
             triggered_class = None
             triggered_conf  = 0.0
 
-            for cls in PRIORITY:
-                if cls in detections:
-                    triggered_class = cls
-                    triggered_conf, _, _ = detections[cls]
-                    break
+            # Only check for cheating if we are not in a cooldown from the Clear button
+            if time.time() >= alert_cooldown_until:
+                for cls in PRIORITY:
+                    if cls in detections:
+                        triggered_class = cls
+                        triggered_conf, _, _ = detections[cls]
+                        break
 
             if triggered_class:
-                current_time = time.time()
-                last_detection_ts = current_time 
-                
+                current_time       = time.time()
+                last_detection_ts  = current_time
+                consecutive_hits  += 1
+
                 conf_pct        = round(triggered_conf * 100)
                 live_ai_score   = float(conf_pct)
                 last_alert_text = triggered_class.upper()
                 last_alert_conf = conf_pct
 
-                if current_time - last_evidence_ts > 5.0:
-                    _, pts, col = detections[triggered_class]
-                    rx1  = max(0, int(pts[:, 0].min()) - 20)
-                    ry1  = max(0, int(pts[:, 1].min()) - 20)
-                    rx2  = min(frame.shape[1], int(pts[:, 0].max()) + 20)
-                    ry2  = min(frame.shape[0], int(pts[:, 1].max()) + 20)
-                    crop = frame[ry1:ry2, rx1:rx2].copy()
-                    if crop.size > 0:
-                        cv2.rectangle(crop, (0, 0), (crop.shape[1]-1, crop.shape[0]-1), col, 3)
-                        cv2.putText(crop, triggered_class.upper(), (6, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.6, col, 2)
-                        save_evidence(crop, triggered_class, triggered_conf)
-                        last_evidence_ts = current_time 
+                if consecutive_hits >= CONSECUTIVE_REQUIRED and current_time - last_evidence_ts > 5.0:
+                    save_evidence(out.copy(), triggered_class, triggered_conf)
+                    last_evidence_ts = current_time
             else:
+                consecutive_hits  = 0
                 live_ai_score = max(0.0, live_ai_score - 1.5)
                 if time.time() - last_detection_ts > 2.0:
                     last_alert_text = ""
@@ -184,7 +184,7 @@ def analyze(frame):
     cv2.putText(out, status, (out.shape[1] - 145, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, col2, 2)
     return out
 
-# Camera handling: Connections and background thread
+# Camera handling: Connections, background thread, and watchdog
 def make_blank_frame(msg="", submsg=""):
     blank = np.zeros((480, 640, 3), dtype=np.uint8)
     if msg: cv2.putText(blank, msg, (30, 225), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (80, 80, 80), 2)
@@ -397,7 +397,10 @@ def toggle_exam():
     global students_loaded, evidence_log, alert_queue
     global live_ai_score, last_alert_text, last_alert_conf
 
-    if not exam_running and not students_loaded:
+    data  = request.get_json(silent=True) or {}
+    force = data.get("force", False)
+
+    if not exam_running and not students_loaded and not force:
         return jsonify({"success": False, "message": "upload_required"}), 400
 
     if not exam_running:
@@ -448,6 +451,20 @@ def set_camera():
     
     add_system_event(f"Camera source set to: {src}", "info")
     return jsonify({"message": f"Connecting to: {camera_source}"})
+
+@app.route("/api/clear_alert", methods=["POST"])
+def clear_alert():
+    global live_ai_score, last_alert_text, last_alert_conf, alert_cooldown_until
+    
+    # Instantly zero out the live score
+    live_ai_score   = 0.0
+    last_alert_text = ""
+    last_alert_conf = 0
+    
+    #  AI ignore new detections for 4.0 seconds
+    alert_cooldown_until = time.time() + 4.0 
+    
+    return jsonify({"success": True})
 
 @app.route("/api/reset", methods=["POST"])
 def reset():

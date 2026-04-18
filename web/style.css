@@ -1,4 +1,3 @@
-/* Base settings for the whole page (colors, fonts, sizes) */
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
 :root {
@@ -36,13 +35,11 @@ body {
   line-height: 1.5;
 }
 
-/* Custom scrollbars to match the dark theme */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 8px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
 
-/* The top navigation bar that stays fixed at the top of the screen */
 .topbar {
   display: flex;
   align-items: center;
@@ -68,7 +65,6 @@ body {
 .nav-logo-title { font-size: 15px; font-weight: 700; letter-spacing: .3px; }
 .nav-logo-sub { font-size: 10px; color: var(--muted); }
 
-/* Navigation links (Dashboard / Evidence) */
 .nav-links { display: flex; gap: 3px; }
 .nav-link {
   padding: 6px 14px;
@@ -84,7 +80,6 @@ body {
 
 .topbar-actions { display: flex; gap: 8px; align-items: center; margin-left: auto; }
 
-/* The hidden camera input box that slides out when clicked */
 .cam-input {
   width: 0; padding: 0; border: none; opacity: 0; visibility: hidden;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -94,7 +89,6 @@ body {
 .cam-input.show { width: 170px; padding: 0 12px; opacity: 1; visibility: visible; border: 1px solid var(--border); margin-right: 8px; }
 .cam-input:focus { outline: none; border-color: var(--accent); }
 
-/* Master styles for all buttons */
 .btn {
   padding: 8px 16px;
   border: none;
@@ -108,7 +102,6 @@ body {
 }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
 
-/* Specific button colors (Green, Red, Blue, Outline) */
 .btn-success { background: linear-gradient(135deg, #065f46, #059669); color: #fff; }
 .btn-success:hover:not(:disabled) { background: linear-gradient(135deg, #047857, #10b981); transform: translateY(-1px); }
 
@@ -122,37 +115,33 @@ body {
 .btn-blue:hover:not(:disabled) { background: linear-gradient(135deg, #1d4ed8, #3b82f6); transform: translateY(-1px); }
 .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 7px; }
 
-/* Main dashboard grid layout (Video on left, panels on right) */
 .main { flex: 1; padding: 18px 22px; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
 
 .content-grid {
   display: grid;
-  grid-template-columns: 1fr 340px; /* Left takes remaining space, right is 340px */
+  grid-template-columns: 1fr 340px;
   grid-template-rows: auto 1fr;
   gap: 14px;
   flex: 1;
   min-height: 0;
 }
 
-/* The 3 stat cards above the video */
 .stats-grid { grid-column: 1/2; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 
-/* The container for the camera feed */
 .video-col { grid-column: 1/2; grid-row: 2/3; display: flex; flex-direction: column; min-height: 0; }
 
-/* The right side container holding Attendance and Event Log */
 .right-panel {
   grid-column: 2/3;
   grid-row: 1/3;
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: calc(100vh - 94px);
+  max-height: calc(100vh - 94px);
   gap: 14px;
   min-height: 0;
   overflow: hidden;
 }
 
-/* Individual Stat Box Styling */
 .stat-card {
   background: var(--card);
   border: 1px solid var(--border);
@@ -174,7 +163,6 @@ body {
 .stat-label { font-size: 11px; color: var(--muted); margin-top: 3px; }
 .stat-sub { font-size: 11px; color: var(--text2); margin-top: 3px; }
 
-/* Standard panel cards used throughout the app */
 .card {
   background: var(--card);
   border: 1px solid var(--border);
@@ -188,20 +176,16 @@ body {
   font-weight: 600; font-size: 13px; background: rgba(255,255,255,.02);
 }
 
-/* Video Feed Container */
 .video-wrap { flex: 1; position: relative; min-height: 400px; background: #000; overflow: hidden; }
 .video-wrap img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
 
-/* Live text banner under the video */
 .alert-ticker { min-height: 32px; padding: 6px 16px; font-size: 12px; color: var(--text2); background: var(--bg2); border-top: 1px solid var(--border); }
 .download-row { display: flex; gap: 10px; padding: 12px 16px; background: #0a1628; border-top: 1px solid var(--border); align-items: center; }
 .download-row.hidden { display: none; }
 
-/* Attendance List Container and scrolling behavior */
 .attendance-card { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
 .roster-list { overflow-y: auto; flex: 1; min-height: 0; padding: 6px; }
 
-/* Individual student row in the attendance list */
 .roster-item {
   display: flex; align-items: center; gap: 12px; padding: 10px 14px;
   border-radius: 10px; margin-bottom: 6px; background: var(--card2);
@@ -217,7 +201,6 @@ body {
 .roster-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .roster-roll { font-size: 10px; color: var(--muted); }
 
-/* The switch for marking students present/absent */
 .toggle-switch { position: relative; display: inline-block; width: 38px; height: 22px; flex-shrink: 0; }
 .toggle-switch input { opacity: 0; width: 0; height: 0; }
 .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border2); transition: .3s; border-radius: 22px; }
@@ -225,7 +208,6 @@ body {
 .toggle-switch input:checked + .slider { background-color: var(--green); }
 .toggle-switch input:checked + .slider:before { transform: translateX(16px); background-color: #fff; }
 
-/* Event Log styling (fixed height box on the bottom right) */
 .event-log-card { height: 260px; display: flex; flex-direction: column; flex-shrink: 0; }
 .event-log { overflow-y: auto; flex: 1; padding: 6px 8px; display: flex; flex-direction: column-reverse; }
 
@@ -236,13 +218,11 @@ body {
 .event-item.error   { background: rgba(69,10,10,.5);   border-color: var(--red); }
 .event-ts  { color: var(--muted); font-size: 10px; margin-top: 2px; }
 
-/* Small status tags (e.g. "RUNNING", "STANDBY") */
 .badge { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 600; }
 .badge-standby { background: rgba(245,158,11,.12); color: var(--orange); border: 1px solid rgba(245,158,11,.2); }
 .badge-running { background: rgba(16,185,129,.12); color: var(--green);  border: 1px solid rgba(16,185,129,.2); }
 .badge-info    { background: rgba(79,142,247,.12); color: var(--blue);   border: 1px solid rgba(79,142,247,.2); }
 
-/* Evidence Page image grid */
 .evidence-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; padding: 14px; }
 .ev-card { background: var(--card2); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; transition: all .25s; overflow: hidden; }
 .ev-card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: var(--glow-blue); }
@@ -252,8 +232,9 @@ body {
 .ev-info { padding: 10px 12px; }
 .ev-student { font-size: 12px; font-weight: 600; color: var(--text); }
 .ev-reason  { font-size: 11px; color: var(--orange); margin-top: 4px; }
+.ev-time    { font-size: 10px; color: var(--muted); margin-top: 3px; }
+.ev-empty   { padding: 40px; text-align: center; color: var(--muted); font-size: 13px; grid-column: 1/-1; }
 
-/* Pop-up Modals (File upload and Image Zoom) */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.85); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; z-index: 999; }
 .modal-overlay.open { display: flex; }
 .modal-box { background: var(--card); border: 1px solid var(--border2); border-radius: var(--radius-lg); width: 92%; max-width: 860px; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,.6); }
@@ -261,13 +242,14 @@ body {
 .modal-img { width: 100%; max-height: 80vh; object-fit: contain; background: #000; display: block; }
 .modal-meta { padding: 14px 18px; font-size: 12px; color: var(--text2); }
 
-/* File upload drag-and-drop area */
 .drop-zone { border: 2px dashed var(--border2); border-radius: var(--radius); padding: 30px; text-align: center; cursor: pointer; background: var(--bg2); transition: all .25s; }
 .drop-zone:hover, .drop-zone.drag-over { border-color: var(--accent); background: rgba(79,142,247,.06); }
 .drop-icon { font-size: 38px; margin-bottom: 10px; }
 .drop-text { font-size: 13px; font-weight: 600; }
 
-/* Animation: Flashing red alert for cheating */
+.page-title { font-size: 20px; font-weight: 700; }
+.page-sub   { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
 @keyframes alertPulse {
   0%   { border-color: var(--border); box-shadow: none; background: var(--card); }
   50%  { border-color: var(--red2); box-shadow: var(--glow-red); background: rgba(248,113,113,0.15); }
@@ -279,5 +261,5 @@ body {
   .content-grid { grid-template-columns: 1fr; grid-template-rows: auto; }
   .stats-grid   { grid-column: 1/2; grid-template-columns: repeat(2, 1fr); }
   .video-col    { grid-column: 1/2; grid-row: auto; }
-  .right-panel  { grid-column: 1/2; grid-row: auto; height: auto; overflow: visible; }
+  .right-panel  { grid-column: 1/2; grid-row: auto; height: auto; max-height: none; overflow: visible; }
 }

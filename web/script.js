@@ -1,4 +1,3 @@
-// State variables to keep track of the exam and student data
 let examRunning     = false;
 let sessionEnded    = false;
 let studentsLoaded  = false;
@@ -6,10 +5,8 @@ let attendanceData  = [];
 let selectedFile    = null;
 let alertTimeout1, alertTimeout2;
 
-// Load previous event logs from the browser's memory so they don't disappear on refresh
 let eventLogData = JSON.parse(sessionStorage.getItem("examguard_logs")) || [];
 
-// When the page loads, immediately show any saved logs
 window.addEventListener('DOMContentLoaded', () => {
     const log = document.getElementById("eventLog");
     if (log && eventLogData.length > 0) {
@@ -22,10 +19,8 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Helper function to get the current time formatted nicely
 function nowFull() { return new Date().toLocaleString(); }
 
-// Keep the dashboard buttons and badges synced with the Python backend
 function pollStatus() {
   fetch("/api/status").then(r => r.json()).then(d => {
     
@@ -34,7 +29,6 @@ function pollStatus() {
     const logBadge = document.getElementById("logStatus");
     const dr = document.getElementById("downloadRow");
 
-    // Update buttons based on whether the exam is running or stopped
     if (d.exam_running && !examRunning) {
         if (btn) { btn.textContent = "⏹ End Session"; btn.className = "btn btn-danger"; }
         if (badge) { badge.textContent = "RUNNING"; badge.className = "badge badge-running"; }
@@ -45,7 +39,6 @@ function pollStatus() {
         if (logBadge) { logBadge.textContent = "Ended"; logBadge.className = "badge badge-standby"; }
     }
 
-    // Show download buttons only if an exam happened
     if (dr) {
         if (d.exam_running || d.session_ended) dr.classList.remove("hidden");
         else dr.classList.add("hidden");
@@ -55,7 +48,6 @@ function pollStatus() {
     sessionEnded   = d.session_ended;
     studentsLoaded = d.students_loaded;
 
-    // Update the AI Suspicion Score percentage
     const aiEl = document.getElementById("statAIScore");
     if (aiEl) {
       const score = d.ai_score || 0;
@@ -63,24 +55,19 @@ function pollStatus() {
         aiEl.textContent = "--"; aiEl.style.color = "var(--text)";
       } else {
         aiEl.textContent = score + "%";
-        // Change color to red if high, orange if medium, green if low
-        aiEl.style.color = score >= 70 ? "#f85149" : score >= 45 ? "#d29922" : "#3fb950";
+        aiEl.style.color = score >= 70 ? "#ef4444" : score >= 45 ? "#f59e0b" : "#10b981";
       }
     }
   }).catch(() => {});
 }
 
-// Fetch new alerts from the server every second
 function pollEvents() {
     fetch("/api/alerts").then(r => r.json()).then(list => {
         if (list.length > 0) {
             list.forEach(e => appendEventToDOM(e));
             eventLogData.push(...list); 
-            
-            // Save logs to browser memory
             sessionStorage.setItem("examguard_logs", JSON.stringify(eventLogData));
 
-            // Make the alert card flash red if cheating is detected
             if (examRunning && list.some(e => e.type === "warning")) {
                 triggerAlertBlink();
             }
@@ -88,7 +75,6 @@ function pollEvents() {
     }).catch(() => {});
 }
 
-// Log actions (like downloads) locally without sending to the Python backend
 function logLocalEvent(msg, type="info") {
     const ts = new Date().toISOString().replace('T', ' ').substring(0, 19); 
     const ev = { type: type, msg: msg, ts: ts };
@@ -97,7 +83,6 @@ function logLocalEvent(msg, type="info") {
     sessionStorage.setItem("examguard_logs", JSON.stringify(eventLogData));
 }
 
-// Add a new message to the visual event log box
 function appendEventToDOM(e) {
     const log = document.getElementById("eventLog");
     if (!log) return;
@@ -106,28 +91,24 @@ function appendEventToDOM(e) {
     div.innerHTML = `<div class="event-msg">${e.msg}</div><div class="event-ts">${e.ts}</div>`;
     log.prepend(div);
     
-    // Remove old logs if there are more than 150 to keep the page fast
     while (log.children.length > 150) log.removeChild(log.lastChild);
 
     const ticker = document.getElementById("alertTicker");
     if (ticker && examRunning) ticker.textContent = e.msg;
 }
 
-// Handle the sliding camera settings input
 let isCamInputOpen = false;
 function toggleCameraInput() {
     const inp = document.getElementById("camInput");
     const btn = document.getElementById("setCamBtn");
 
     if (!isCamInputOpen) {
-        // Open the input box
         inp.classList.add("show");
         inp.focus();
         btn.textContent = "✔ Confirm";
         btn.className = "btn btn-blue btn-sm";
         isCamInputOpen = true;
     } else {
-        // Send the new camera address to the backend
         const val = inp.value.trim();
         if (val) setCamera(val);
         inp.classList.remove("show");
@@ -137,7 +118,6 @@ function toggleCameraInput() {
     }
 }
 
-// Tell the backend to switch cameras
 function setCamera(src) {
     const btn = document.getElementById("setCamBtn");
     btn.disabled = true;
@@ -153,7 +133,6 @@ function setCamera(src) {
     }).catch(() => { btn.disabled = false; btn.textContent = "⚙ Set Camera"; });
 }
 
-// Make the alert card flash red for 9 seconds when cheating happens
 function triggerAlertBlink() {
   const card   = document.getElementById("alertCard");
   const status = document.getElementById("alertStatus");
@@ -176,7 +155,27 @@ function triggerAlertBlink() {
   alertTimeout2 = setTimeout(() => card.classList.remove("blink"), 9000);
 }
 
-// Update the live clock on the dashboard
+function clearLiveAlert() {
+    const card = document.getElementById("alertCard");
+    const status = document.getElementById("alertStatus");
+    const aiEl = document.getElementById("statAIScore");
+    
+    if (card) card.classList.remove("blink");
+    if (status) {
+        status.textContent = "Monitoring…";
+        status.style.color = "var(--text2)";
+    }
+    if (aiEl) {
+        aiEl.textContent = "0%";
+        aiEl.style.color = "var(--text)";
+    }
+    
+    clearTimeout(alertTimeout1);
+    clearTimeout(alertTimeout2);
+
+    fetch("/api/clear_alert", { method: "POST" }).catch(()=>{});
+}
+
 function startClock(){
   setInterval(() => {
     const el = document.getElementById("statClock");
@@ -187,7 +186,6 @@ function startClock(){
 }
 startClock();
 
-// Get the latest attendance data from the server
 function pollStudents() {
   fetch("/api/students").then(r => r.json()).then(list => {
     if (attendanceData.length !== list.length) {
@@ -200,7 +198,6 @@ function pollStudents() {
   }).catch(() => {});
 }
 
-// Draw the list of students on the right side of the screen
 function renderRoster(list) {
   const roster = document.getElementById("rosterList");
   if (!roster) return;
@@ -233,7 +230,6 @@ function renderRoster(list) {
   }).join("");
 }
 
-// Handle what happens when a teacher clicks the Present/Absent switch
 function onCheckChange(roll, isChecked) {
   const row = document.getElementById(`row-${roll}`);
   const statusText = document.getElementById(`status-${roll}`);
@@ -247,7 +243,6 @@ function onCheckChange(roll, isChecked) {
   const student = attendanceData.find(s => s.roll === roll);
   if (student) student.present = isChecked;
 
-  // Send the updated attendance to the backend
   const presentRolls = attendanceData.filter(s => s.present).map(s => s.roll);
   fetch("/api/mark_attendance", {
     method: "POST", headers: { "Content-Type": "application/json" },
@@ -255,7 +250,6 @@ function onCheckChange(roll, isChecked) {
   }).catch(err => console.error("Auto-save failed:", err));
 }
 
-// Start running the background checks every few seconds
 setInterval(pollStatus,   2000);
 setInterval(pollStudents, 3500);
 setInterval(pollEvents,   1500);
@@ -263,11 +257,26 @@ pollStatus();
 pollStudents();
 pollEvents();
 
-// Handle the Start/Stop Session button
 function handleStartBtn() {
   if (examRunning) {
     if (confirm("End session? Attendance is automatically saved.")) endSession();
-  } else { openUploadModal(); }
+  } else {
+    openUploadModal();
+  }
+}
+
+function startWithoutStudents() {
+  closeUploadModal();
+  setTimeout(() => {
+    fetch("/api/toggle_exam", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ force: true })
+    }).then(r => r.json()).then(d => {
+      if (!d.success) return;
+      pollStatus(); pollEvents(); pollStudents();
+    }).catch(() => {});
+  }, 150);
 }
 
 function startSession() {
@@ -282,12 +291,15 @@ function endSession() {
   fetch("/api/toggle_exam", { method: "POST" })
     .then(r => r.json()).then(d => {
       if (!d.success) return;
-      pollStatus(); pollEvents();
+      eventLogData = [];
+      sessionStorage.removeItem("examguard_logs");
+      const log = document.getElementById("eventLog");
+      if (log) log.innerHTML = "";
       document.getElementById("rosterList").innerHTML = `<div style="padding:16px;text-align:center;color:var(--muted);font-size:12px">Session ended. Start new session to reload students.</div>`;
+      pollStatus(); pollEvents();
     });
 }
 
-// Control the Excel Upload window
 function openUploadModal() { document.getElementById("uploadModal").classList.add("open"); }
 function closeUploadModal() {
     document.getElementById("uploadModal").classList.remove("open");
@@ -304,6 +316,7 @@ function setSelectedFile(file) {
   selectedFile = file;
   document.getElementById("filePreview").style.display = "flex";
   document.getElementById("fileName").textContent = file.name;
+  document.getElementById("fileSize").textContent = (file.size / 1024).toFixed(1) + " KB";
   document.getElementById("uploadError").style.display = "none";
   document.getElementById("uploadBtn").disabled = false;
 }
@@ -327,7 +340,6 @@ function uploadFile() {
     });
 }
 
-// Generate text files for downloading reports
 function downloadAttendance() {
   const present = attendanceData.filter(s => s.present);
   const absent  = attendanceData.filter(s => !s.present);

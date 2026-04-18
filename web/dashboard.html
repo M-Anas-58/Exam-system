@@ -23,7 +23,7 @@
     </div>
     <div class="topbar-actions">
       <div style="position:relative; display:flex; align-items:center;">
-        <input id="camInput" class="cam-input" placeholder="Camera IP or index…"/>
+        <input id="camInput" class="cam-input" placeholder="Camera IP…"/>
         <button id="setCamBtn" class="btn btn-outline btn-sm" onclick="toggleCameraInput()" style="margin-right:12px; z-index:2; position:relative;">⚙ Set Camera</button>
       </div>
       <button id="examBtn" class="btn btn-success" onclick="handleStartBtn()">▶ Start Session</button>
@@ -35,8 +35,11 @@
     <div class="stats-grid">
       <div class="stat-card" id="alertCard">
         <div class="stat-icon orange">⚠️</div>
-        <div>
-          <div class="stat-label" style="font-size:13px;font-weight:600;color:var(--text)">Cheat Alert</div>
+        <div style="flex: 1;">
+          <div class="stat-label" style="font-size:13px;font-weight:600;color:var(--text);display:flex;justify-content:space-between;align-items:center;">
+            Cheat Alert
+            <button onclick="clearLiveAlert()" class="btn btn-outline" style="padding:2px 8px; font-size:10px; height: 22px;">⟳ Clear</button>
+          </div>
           <div class="stat-sub" id="alertStatus">Monitoring</div>
         </div>
       </div>
@@ -84,7 +87,6 @@
         <div class="card-header">
           <span>✅ Attendance List</span>
           <div style="display:flex;gap:8px;align-items:center">
-            <span style="font-size: 10px; color: var(--muted);">Auto-saving</span>
             <span class="badge badge-info" id="presentBadge">0 / 0</span>
           </div>
         </div>
@@ -116,23 +118,23 @@
     <div style="padding:24px;display:flex;flex-direction:column;gap:16px">
       <div style="font-size:13px;color:var(--muted);line-height:1.7">
         Upload an <strong style="color:var(--text)">.xlsx</strong> file with columns:
-        <div style="margin-top:8px;background:#21262d;border-radius:6px;padding:10px 14px;font-family:monospace;font-size:12px;color:var(--accent)">
-          roll &nbsp;|&nbsp; name
-        </div>
       </div>
       <div id="dropZone" class="drop-zone" onclick="document.getElementById('fileInput').click()" ondragover="event.preventDefault(); this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event)">
         <div class="drop-icon">📄</div>
         <div class="drop-text">Click or drag &amp; drop Excel file</div>
         <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none" onchange="handleFileSelect(event)"/>
       </div>
-      <div id="filePreview" style="display:none;background:#21262d;border-radius:6px;padding:10px 14px;font-size:12px;align-items:center;gap:10px">
+      <div id="filePreview" style="display:none;background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:10px 14px;font-size:12px;align-items:center;gap:10px">
         <span style="font-size:20px">📊</span>
         <div><div id="fileName" style="font-weight:600;color:var(--text)"></div><div id="fileSize" style="color:var(--muted);margin-top:2px"></div></div>
       </div>
-      <div id="uploadError" style="display:none;color:var(--red);font-size:12px;padding:8px 12px;background:#2d0d0d;border-radius:6px;border-left:3px solid var(--red)"></div>
-      <div style="display:flex;gap:10px;justify-content:flex-end">
-        <button class="btn btn-outline" onclick="closeUploadModal()">Cancel</button>
-        <button class="btn btn-success" id="uploadBtn" onclick="uploadFile()" disabled>✔ Upload &amp; Continue</button>
+      <div id="uploadError" style="display:none;color:var(--red);font-size:12px;padding:8px 12px;background:rgba(239,68,68,0.1);border-radius:6px;border-left:3px solid var(--red)"></div>
+      <div style="display:flex;gap:10px;justify-content:space-between;align-items:center">
+        <button class="btn btn-outline btn-sm" onclick="startWithoutStudents()" style="color:var(--muted);border-color:var(--border);font-size:11px;padding:6px 12px;">↪ Continue without attendance</button>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-outline" onclick="closeUploadModal()">Cancel</button>
+          <button class="btn btn-success" id="uploadBtn" onclick="uploadFile()" disabled>✔ Upload &amp; Continue</button>
+        </div>
       </div>
     </div>
   </div>
