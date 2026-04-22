@@ -194,15 +194,22 @@ def make_blank_frame(msg="", submsg=""):
 
 def open_camera(source):
     print(f"[CAM] Connecting to: {source}")
-    if isinstance(source, str) and (source.startswith("http") or source.startswith("rtsp")):
-        c = cv2.VideoCapture(source, cv2.CAP_FFMPEG)
-    else:
-        c = cv2.VideoCapture(source)
+    is_network = isinstance(source, str) and (source.startswith("http") or source.startswith("rtsp"))
 
-    timeout = 15 if isinstance(source, str) else 3
+    if is_network:
+        c = cv2.VideoCapture()
+        c.set(cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 3000)
+        c.set(cv2.CAP_PROP_READ_TIMEOUT_MSEC, 3000)
+        c.open(source, cv2.CAP_FFMPEG)
+    else:
+        c = cv2.VideoCapture(source, cv2.CAP_DSHOW)
+        if not c.isOpened():
+            c = cv2.VideoCapture(source)
+
+    timeout = 4 if is_network else 3
     start   = time.time()
     while not c.isOpened() and (time.time() - start) < timeout:
-        time.sleep(0.3)
+        time.sleep(0.1)
 
     if not c.isOpened():
         print(f"[CAM] Failed: {source}")
@@ -211,9 +218,10 @@ def open_camera(source):
 
     c.set(cv2.CAP_PROP_FRAME_WIDTH,  640)
     c.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-    c.set(cv2.CAP_PROP_FPS,          15)
-    if isinstance(source, str):
-        c.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+    c.set(cv2.CAP_PROP_FPS,          30)
+    c.set(cv2.CAP_PROP_BUFFERSIZE,   1)
+    if not is_network:
+        c.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
     print(f"[CAM] Connected: {source}")
     return c
 
@@ -251,6 +259,7 @@ def cam_loop():
             cap = new_cap
             consecutive_fails = 0
 
+        cap.grab()
         ret, frame = cap.read()
         if not ret:
             consecutive_fails += 1
@@ -274,7 +283,7 @@ def cam_loop():
         except Exception as e:
             print(f"[CAM] Encode error: {e}")
 
-        time.sleep(0.04)
+        time.sleep(0.01)
 
 threading.Thread(target=cam_loop, daemon=True).start()
 
@@ -299,9 +308,7 @@ def gen_frames():
             if not data:
                 blank = make_blank_frame("Initialising...")
                 yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + blank + b"\r\n")
-        time.sleep(0.04)
-
-# Web API Routes for the frontend dashboard
+        time.sleep(0.01)
 @app.route("/")
 def index():
     return render_template("dashboard.html")
@@ -461,7 +468,7 @@ def clear_alert():
     last_alert_text = ""
     last_alert_conf = 0
     
-    #  AI ignore new detections for 4.0 seconds
+    # Force the AI to ignore new detections for exactly 4.0 seconds
     alert_cooldown_until = time.time() + 4.0 
     
     return jsonify({"success": True})
