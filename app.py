@@ -14,7 +14,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 from database import load_students_from_file
 
-# Load YOLO model and define the specific cheating behaviors to detect
+# Load YOLO model
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "best.pt")
 yolo_model = None
 if os.path.exists(MODEL_PATH):
